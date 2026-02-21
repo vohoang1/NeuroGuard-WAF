@@ -4,12 +4,14 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0b0f1a;
+  /* Deeper dark for premium feel */
+  color: #f3f4f6;
   min-height: 100vh;
-  background-color: #111827; /* Tailwind gray-900 */
-  color: #f3f4f6; /* Tailwind gray-100 */
+  line-height: 1.5;
 }
 
 #root {
