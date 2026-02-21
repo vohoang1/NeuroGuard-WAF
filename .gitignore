@@ -40,5 +40,7 @@ Thumbs.db
 # IDEs
 .idea/
 .vscode/
+!.vscode/settings.json
+!.vscode/tailwind.json
 *.swp
 *.swo
