@@ -175,7 +175,6 @@ Dự án này là minh chứng cho khả năng xây dựng hệ thống bảo m�
 - **Email:** hoangvo15224@gmail.com
 - **Portfolio:** [View my full profile](https://github.com/vohoang1)
 
----
 *© 2026 NeuroGuard Project. Built with Rust 🦀, Go 🐹, and AI 🧠.*
 ```
 
