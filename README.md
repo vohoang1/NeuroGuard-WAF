@@ -1,5 +1,4 @@
 # 🛡 NeuroGuard WAF
-rust webassembly cybersecurity waf artificial-intelligence envoy-proxy go clickhouse threat-detection open-source
 AI-Powered Web Application Firewall built with Rust, WebAssembly and ONNX Runtime.
 
 NeuroGuard WAF là một hệ thống Web Application Firewall (WAF) thế hệ mới kết hợp:
