@@ -1,0 +1,137 @@
+version: '3.8'
+
+networks:
+  ng_internal:
+    driver: bridge
+  ng_public:
+    driver: bridge
+
+services:
+  # 1. Envoy Proxy with NeuroGuard WAF
+  envoy-waf:
+    image: envoyproxy/envoy:v1.30-latest
+    container_name: ng_envoy
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      # The compiled WASM module must be mounted into the Envoy container space
+      - ./target/wasm32-wasip1/release/neuroguard_waf.wasm:/etc/envoy/wasm/neuroguard_waf.wasm:ro
+    ports:
+      - "8080:8080" # Application traffic
+      - "9901:9901" # Envoy Admin
+    # Route stdout/stderr to fluent-bit using Docker log driver
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: localhost:${FLUENT_BIT_PORT:-24224}
+        tag: envoy.logs
+    depends_on:
+      - fluent-bit
+    networks:
+      - ng_public
+      - ng_internal
+
+  # 2. Fluent Bit (Log Collector)
+  fluent-bit:
+    image: fluent/fluent-bit:3.0
+    container_name: ng_fluent_bit
+    volumes:
+      - ./deploy/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./deploy/fluent-bit/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+    ports:
+      - "${FLUENT_BIT_PORT:-24224}:24224"
+      - "${FLUENT_BIT_PORT:-24224}:24224/udp"
+    depends_on:
+      - clickhouse
+    networks:
+      - ng_internal
+
+  # 3. ClickHouse (Time-Series Database)
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: ng_clickhouse
+    environment:
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-admin}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-neuroguard_secure_pwd}
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ports:
+      - "8123:8123" # HTTP API
+      - "9000:9000" # Native client
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./deploy/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./deploy/clickhouse/custom_settings.xml:/etc/clickhouse-server/config.d/custom_settings.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - ng_internal
+
+  # 3.5 Postgres (Relational Database for Multi-Tenancy)
+  postgres:
+    image: postgres:15-alpine
+    container_name: ng_postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-neuroguard_secure_pwd}
+      - POSTGRES_DB=${POSTGRES_DB:-neuroguard}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - ng_internal
+    restart: always
+
+  # 4. AI Engine (ONNX Inference Sidecar)
+  ai-engine:
+    build:
+      context: ./ai_engine
+      dockerfile: Dockerfile
+    container_name: ng_ai_engine
+    ports:
+      - "8000:8000"
+    networks:
+      - ng_internal
+    restart: always
+
+  # 5. Backend Golang API
+  neuroguard-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ng_backend_api
+    restart: always
+    environment:
+      - CLICKHOUSE_HOST=clickhouse:9000
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-admin}
+      - CLICKHOUSE_PASS=${CLICKHOUSE_PASSWORD:-neuroguard_secure_pwd}
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-neuroguard}
+      - JWT_SECRET=${JWT_SECRET:-super_secret_commercial_key_123!}
+      - PORT=${API_PORT:-8081}
+    ports:
+      - "${API_PORT:-8081}:${API_PORT:-8081}"
+    depends_on:
+      - clickhouse
+      - postgres
+    networks:
+      - ng_internal
+      - ng_public
+
+  # 6. Frontend React Dashboard
+  neuroguard-dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ng_frontend_ui
+    ports:
+      - "${DASHBOARD_PORT:-3000}:80"
+    depends_on:
+      - neuroguard-api
+    networks:
+      - ng_public
+
+volumes:
+  clickhouse_data:
+  postgres_data:

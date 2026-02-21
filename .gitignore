@@ -1,0 +1,44 @@
+# --- SECRETS & ENVIRONMENT ---
+.env
+.env.local
+.env.production
+*.pem
+*.key
+secrets/
+config/secrets.json
+
+# --- LOGS & TEMP (Tránh lộ info qua log) ---
+*.log
+tmp/
+temp/
+
+# Go
+bin/
+obj/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Node
+node_modules/
+dist/
+build/
+.env.*.local
+
+# Rust
+target/
+**/*.rs.bk
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo

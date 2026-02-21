@@ -1,0 +1,14 @@
+{
+  "enable_sqli": true,
+  "enable_xss": true,
+  "enable_bot_detection": true,
+  "ai_score_threshold": 0.75,
+  "max_body_bytes": 1048576,
+  "block_on_missing_user_agent": false,
+  "suspicious_content_length_threshold": 10485760,
+  "log_level": "info",
+  "rule_metadata": {
+    "ruleset_version": "2026.1.0",
+    "owasp_coverage": ["A03:2021-Injection", "A07:2021-XSS"]
+  }
+}
